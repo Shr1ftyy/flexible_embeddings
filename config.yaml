@@ -1,0 +1,28 @@
+#TODO: this is kinda gross, fix strings and stuff
+gpus: "0,"
+base_config: 'configs/single_image.yaml'
+# TODO: WARNING TO USER, DO NOT USE TILDE!!!
+model_ckpt_path: "/root/model.ckpt"
+init_img_path: "init_images"
+outputs_path: "OUTPUTS"
+filtered_path: "FILTERED"
+init_word: "\"*\"" # TODO: STRING FORMATTING 
+iterations: 2
+
+# training image generation params
+ddim_eta: 0.0
+n_samples: 2
+n_iter: 2
+scale: 7.0
+ddim_steps: 20
+num_prompts: 5
+num_attire: 1
+simple_attire: true
+
+# embedding names
+embedding_names:
+  [
+    # "w",
+    # "b",
+    "example"
+  ]

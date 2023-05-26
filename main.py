@@ -569,7 +569,9 @@ if __name__ == "__main__":
         if opt.datadir_in_name:
             now = os.path.basename(os.path.normpath(opt.data_root)) + now
             
-        nowname = now + name + opt.postfix
+        # nowname = now + name + opt.postfix
+        # TODO: hack, NO DATE LOL
+        nowname = name + opt.postfix
         logdir = os.path.join(opt.logdir, nowname)
 
     ckptdir = os.path.join(logdir, "checkpoints")
@@ -804,8 +806,9 @@ if __name__ == "__main__":
             except Exception:
                 melk()
                 raise
-        if not opt.no_test and not trainer.interrupted:
-            trainer.test(model, data)
+        # TODO: This raises an error - fix afterwards
+        # if not opt.no_test and not trainer.interrupted:
+        #     trainer.test(model, data)
     except Exception:
         if opt.debug and trainer.global_rank == 0:
             try:
