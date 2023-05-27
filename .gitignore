@@ -1,0 +1,9 @@
+*.pyc
+*.vscode
+OUTPUTS
+FILTERED
+init_images
+logs
+latent_diffusion.egg-info
+src/
+models/ldm/text2img-large/
