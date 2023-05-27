@@ -1,5 +1,5 @@
 <!-- WARNING - this repo if sort of... raw. There's some hacks done to 
-accomodate for the train.py script (hint: see all new "# TODO:" tags in main.py, train.py, config.yaml) -->
+accomodate for the train.py script (hint: see all new "# TODO:" tags in main.py, train.py, example-config.yaml) -->
 
 This repo borrows heavily from https://github.com/rinongal/textual_inversion/tree/424192de1518a358f1b648e0e781fdbe3f40c210
 
@@ -10,7 +10,7 @@ This repo borrows heavily from https://github.com/rinongal/textual_inversion/tre
 
 4. run `train.py`, e.g.:
 ```
-python train.py --config config.yaml
+python train.py --config example-config.yaml
 ```
 sometimes, you might get the following error:
 ```
@@ -19,7 +19,7 @@ Error: mkl-service + Intel(R) MKL: MKL_THREADING_LAYER=INTEL is incompatible wit
 ```
 in which case, just do this:
 ```
-MKL_SERVICE_FORCE_INTEL=1 python train.py --config config.yaml
+MKL_SERVICE_FORCE_INTEL=1 python train.py --config example-config.yaml
 ``` 
 
 all embeddings are stored under folders following the following scheme:
