@@ -9,12 +9,11 @@ import clip
 import torchvision.transforms.functional as TF
 import torch
 from torchvision import transforms
-import time
 import logging
 
 parser = argparse.ArgumentParser(description='Run command with arguments.')
 parser.add_argument('--config', type=str, required=True, help='Path to base config file')
-parser.add_argument('--debug', type=str, required=True, help='Path to base config file')
+parser.add_argument('--debug', action='store_true', help='Include this flag to set logging to DEBUG')
 
 args = parser.parse_args()
 
@@ -173,7 +172,6 @@ if __name__ == "__main__":
             else:
                 data_root += str(PurePath(f"{init_img_path}/{name}/"))
             
-s
             # train embedding
             run_inv_main(
                 base_config=base_config,
@@ -238,7 +236,6 @@ s
             )
             logging.debug("FILTERED IMAGES:")
             logging.debug(filtered_images)
-            time.sleep(2)
 
             save_images(filtered_images, str(PurePath(f"{filtered_path}/{name}-{iteration}/samples")))
 

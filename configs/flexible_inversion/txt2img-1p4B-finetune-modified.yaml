@@ -22,7 +22,7 @@ model:
       target: ldm.modules.embedding_manager.EmbeddingManager
       params:
         placeholder_strings: ["*"]
-        initializer_words: ["*"] # TODO: WHAT DOES THIS ACTUALLY DO LOL?
+        initializer_words: ["*"]
         per_image_tokens: false
         num_vectors_per_token: 1
         progressive_words: False
@@ -105,15 +105,15 @@ data:
 lightning:
   modelcheckpoint:
     params:
-      every_n_train_steps: 0
+      every_n_train_steps: 100
   callbacks:
     image_logger:
       target: main.ImageLogger
       params:
-        batch_frequency: 500
-        max_images: 5
+        batch_frequency: 100
+        max_images: 1
         increase_log_steps: False
 
   trainer:
     benchmark: True
-    max_steps: 2
+    max_steps: 300

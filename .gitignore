@@ -2,8 +2,10 @@
 *.vscode
 OUTPUTS
 FILTERED
-init_images
+# init_images/
+# !init_images/ex_sub/*
 logs
 latent_diffusion.egg-info
 src/
 models/ldm/text2img-large/
+.hidden.config.yaml

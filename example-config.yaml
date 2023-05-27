@@ -1,0 +1,41 @@
+#TODO: this is kinda gross, fix strings and stuff
+gpus: "0,"
+base_config: 'configs/flexible_inversion/txt2img-1p4B-finetune-modified.yaml'
+# TODO: WARNING TO USER, DO NOT USE TILDE!!!
+model_ckpt_path: "models/ldm/text2img-large/model.ckpt"
+init_img_path: "init_images"
+outputs_path: "OUTPUTS" # stores output images for each iteration of each embedding
+filtered_path: "FILTERED" # stores filtered images for training each new iteration of each embedding
+init_word: "\"*\"" # TODO: STRING FORMATTING, allow the user to modify this per embedding
+iterations: 2 # number of training iterations per embedding
+
+# training image generation params
+ddim_eta: 0.0
+n_samples: 8
+n_iter: 3
+scale: 7.0
+ddim_steps: 20
+num_prompts: 3
+num_attire: 1
+
+# prompt generation
+simple_attire: true
+# image filtering 
+filter_ratio: 0.1
+
+# embedding names - have to have same name as folder containing image
+# i.e. if init_img_path is "init_images", and "bluhrboi" is embedding name,
+# then, the image for the first iteration of training should  under "init_images/bluhrboi/" 
+embedding_names:
+  [
+    "bluhrboi",
+    # "d0",
+    # "frd_0",
+    # "p0",
+    # "p0",
+    # "w0"
+  ]
+
+# Also, all embeddings are stored under folders following the following scheme:
+# "logs/{embedding_names},_{embedding_name}-{iteration}/checkpoints"
+# So, to get access the 3rd iteration of the "" 
