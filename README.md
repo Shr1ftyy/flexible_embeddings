@@ -10,3 +10,15 @@ This repo borrows heavily from https://github.com/rinongal/textual_inversion/tre
 ```
 python train.py --config config.yaml
 ```
+
+sometimes, you might get the following error:
+```
+Error: mkl-service + Intel(R) MKL: MKL_THREADING_LAYER=INTEL is incompatible with libgomp.so.1 library.
+        Try to import numpy first or set the threading layer accordingly. Set MKL_SERVICE_FORCE_INTEL to force it.
+```
+
+in which case, just do this:
+
+```
+MKL_SERVICE_FORCE_INTEL=1 python train.py --config config.yaml
+```

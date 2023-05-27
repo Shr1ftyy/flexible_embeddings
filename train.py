@@ -1,20 +1,103 @@
-# THIS IS PRETTY SCUFFED LOL
-# I'M RUNNING THE SCRIPTS AS SUBPROCESSES xD
-# WHY FORK AND MODIFY EXISTING CODE IT'S EASIER TO WORK 
-# AROUND IT LIKE THIS?
-
-# import subprocess
 import os
 import argparse
 from omegaconf import OmegaConf
 from tqdm import tqdm
 from pathlib import PurePath
 from prompt_script import gen_prompts
-
+import cv2
+import clip
+import torchvision.transforms.functional as TF
+import torch
+from torchvision import transforms
+import time
+import logging
 
 parser = argparse.ArgumentParser(description='Run command with arguments.')
 parser.add_argument('--config', type=str, required=True, help='Path to base config file')
+parser.add_argument('--debug', type=str, required=True, help='Path to base config file')
+
 args = parser.parse_args()
+
+if args.debug:
+    logging.basicConfig(level=logging.DEBUG)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+def transform_image(image):
+    # Resize the image
+    image = TF.resize(image, (224, 224))
+    # Normalize the image
+    image = TF.normalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    return image
+
+def filter_images(model, init_img, to_filter, filter_ratio):
+    # Prepare the init_img
+    init_img = transform_image(init_img)
+
+    # init_img = normalize(init_img, mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+    init_img = init_img.unsqueeze(0).to(device)
+    init_img_features = model.encode_image(init_img)
+
+    # Calculate CLIP score for each image in to_filter and store them in scores
+    scores = []
+    for img in to_filter:
+        # img = normalize(img, mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711])
+
+        img = transform_image(img)
+
+        img = img.unsqueeze(0).to(device)
+        img_features = model.encode_image(img)
+
+        # Calculate similarity score using cosine similarity
+        score = torch.nn.functional.cosine_similarity(init_img_features, img_features, dim=-1)
+        scores.append(score.item())
+
+    # Get the top filter_ratio percentage of images
+    top_k = int(len(to_filter) * filter_ratio)
+    top_k_indices = torch.topk(torch.Tensor(scores), k=top_k).indices
+
+    return [to_filter[i] for i in top_k_indices]
+
+def load_image(img_path):
+    # OpenCV loads an image as BGR format. So, we need to convert it to RGB
+    img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
+    
+    # Convert the image from a NumPy array to a PyTorch tensor and normalize pixel values
+    transform = transforms.Compose([
+        transforms.ToPILImage(),  # Converts a NumPy array to a PIL Image
+        transforms.ToTensor(),  # Converts a PIL Image to a PyTorch tensor
+    ])
+
+    img_t = transform(img)
+    return img_t
+
+
+def save_images(image_tensors, output_dir):
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Transformation to convert tensor to PIL Image
+    to_pil = transforms.ToPILImage()
+
+    for i, img_tensor in enumerate(image_tensors):
+        # Convert the tensor to a PIL Image
+        img = to_pil(img_tensor)
+
+        # Define the output path
+        out_path = os.path.join(output_dir, f'image_{i}.jpg')
+
+        # Save the image
+        img.save(out_path)
+
+def get_all_file_paths(directory):
+    file_paths = []
+    for dirpath, dirnames, filenames in os.walk(directory):
+        for filename in filenames:
+            # Combine the directory path and file name
+            file_path = os.path.join(dirpath, filename)
+            file_paths.append(file_path)
+    return file_paths
+
 
 def run_inv_main(base_config, actual_resume, run_name, gpus, data_root, init_word, **kwargs):
     cmd = [
@@ -28,8 +111,8 @@ def run_inv_main(base_config, actual_resume, run_name, gpus, data_root, init_wor
         '--init_word', init_word
     ]
 
-    print("TRAINING PARAMS:")
-    print(" ".join(cmd))
+    logging.debug("TRAINING PARAMS:")
+    logging.debug(" ".join(cmd))
 
     for key, value in kwargs.items():
         cmd.append(key)
@@ -51,8 +134,8 @@ def run_txt2img(ddim_eta, n_samples, n_iter, scale, ddim_steps, embedding_path, 
         '--outdir', outdir
     ]
 
-    print("PARAMS:")
-    print(" ".join(cmd))
+    logging.debug("GEN PARAMS:")
+    logging.debug(" ".join(cmd))
 
     for key, value in kwargs.items():
         cmd.append(key)
@@ -73,6 +156,8 @@ if __name__ == "__main__":
     iterations = conf.iterations
     outputs_path = conf.outputs_path
     init_word = conf.init_word
+    filtered_path = conf.filtered_path
+    clip_encoder, transform = clip.load("ViT-L/14", device=device) # TODO: make this user-defined in the future?
 
     for name in embedding_names:
         for iteration in tqdm(range(iterations)):
@@ -83,12 +168,12 @@ if __name__ == "__main__":
 
             if iteration > 0:
                 # TODO: change output_paths to filtered_paths, and iteration when adding image filtering
-                # data_root += str(PurePath(f"{filtered_paths}/{name}-{iteration}/samples/"))
-                data_root += str(PurePath(f"{outputs_path}/{name}-{iteration-1 if iteration > 0 else ''}/samples/"))
+                data_root += str(PurePath(f"{filtered_path}/{name}-{iteration-1 if iteration > 0 else ''}/samples/"))
+                # data_root += str(PurePath(f"{outputs_path}/{name}-{iteration-1 if iteration > 0 else ''}/samples/"))
             else:
                 data_root += str(PurePath(f"{init_img_path}/{name}/"))
             
-
+s
             # train embedding
             run_inv_main(
                 base_config=base_config,
@@ -109,6 +194,8 @@ if __name__ == "__main__":
                 simple=conf.simple_attire
             )
 
+            outdir = str(PurePath(f'{outputs_path}/{name}-{iteration}/'))
+
             for prompt in prompts:
                 run_txt2img(
                     ddim_eta=conf.ddim_eta, 
@@ -118,14 +205,44 @@ if __name__ == "__main__":
                     ddim_steps=conf.ddim_steps, 
                     embedding_path=f"logs/_{name}-{iteration}/checkpoints/embeddings.pt",
                     ckpt_path=model_ckpt_path, 
-                    # prompt='\"a photo of *\"', # TODO: a prompt here from prompt generator
+                    # prompt='\"a photo of *\"',
+                    # TODO: look into better prompt generators
                     prompt=f'\"{prompt}\"',
-                    outdir=f'{outputs_path}/{name}-{iteration}/'
+                    outdir=outdir
                 )   
 
-        # filter images, and output them to filtered_paths
+            output_samples_path = str(PurePath(outdir + '/samples'))
+            # set up next training image batch
+            # get initial image
+            init_img_file_path = get_all_file_paths(f'{init_img_path}/{name}')[0]
+            init_img = load_image(init_img_file_path)
+            logging.debug("INIT IMG:")
+            logging.debug(init_img)
 
-        # repeat 
+            # load images to filter into mem
+            images_to_filter = []
+
+            output_imgs = get_all_file_paths(output_samples_path)
+            for img_path in output_imgs:
+                out_img = load_image(img_path)
+                images_to_filter.append(out_img)
+            logging.debug("IMAGES TO FILTER:")
+            logging.debug(images_to_filter)
+
+            # filter images, and output them to filtered_paths
+            filtered_images = filter_images(
+                model=clip_encoder,
+                init_img=init_img,
+                to_filter=images_to_filter,
+                filter_ratio=conf.filter_ratio,
+            )
+            logging.debug("FILTERED IMAGES:")
+            logging.debug(filtered_images)
+            time.sleep(2)
+
+            save_images(filtered_images, str(PurePath(f"{filtered_path}/{name}-{iteration}/samples")))
+
+            # repeat 
 
     args = parser.parse_args()
 
